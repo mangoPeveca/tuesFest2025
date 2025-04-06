@@ -1,0 +1,379 @@
+## Last commit: 2025-02-20 10:27:22 UTC by rostislav
+version 24.2R1-S1.10;
+system {
+    host-name LAB-EX4100-48P;
+    root-authentication {
+        encrypted-password "$6$Yj/xvGpS$HBd.uu3IVzbYWVuNcmLE0ZEdn6cR3C515Od6EhTb9MxJgcaXXhphMVc6dg1ppS.0aNT/ZE/WaOhJp2o/bvau.0"; ## SECRET-DATA
+    }
+    login {
+        class super-user-local {
+            idle-timeout 100;
+            permissions all;
+            deny-commands "show routing";
+        }
+        user rostislav {
+            uid 2000;
+            class super-user;
+            authentication {
+                encrypted-password "$6$fjqTf2dw$IKsFwWYNsOEOIycNvr2ZpGHB4QTvcR/ms9odGlqi0XZQ.QOz7KUO9fJu6BwNYGe60SUtU6nh8GAiRFr1CXtOb/"; ## SECRET-DATA
+            }
+        }
+        user venelin {
+            uid 2013;
+            class super-user-local;
+            authentication {
+                encrypted-password "$6$NAlWfQcr$WqRsDw844AwhXDzas.uqwJLiSl63TfTypJi.fB/lC4z804Fr/51nR8Pxdls2mb8/Cg8nUQX/blEODXK0twYPT."; ## SECRET-DATA
+            }
+        }
+    }
+    services {
+        netconf {
+            ssh;
+            rfc-compliant;
+            yang-compliant;
+        }
+        ssh {
+            root-login allow;
+            sftp-server;
+            client-alive-count-max 255;
+            client-alive-interval 30;
+        }
+    }
+    auto-snapshot;
+    protect: management-instance;
+    syslog {
+        file interactive-commands {
+            interactive-commands any;
+        }
+        file messages {
+            any notice;
+            authorization info;
+        }
+    }
+    processes {
+        dhcp-service {
+            traceoptions {
+                file dhcp_logfile size 10m;
+                level all;
+                flag packet;
+            }
+        }
+    }
+}
+chassis {
+    aggregated-devices {
+        ethernet {
+            device-count 20;
+        }
+    }
+}
+interfaces {
+    ge-0/0/0 {
+        gigether-options {
+            802.3ad ae0;
+        }
+    }
+    ge-0/0/1 {
+        gigether-options {
+            802.3ad ae0;
+        }
+    }
+    ge-0/0/6 {
+        gigether-options {
+            802.3ad ae1;
+        }
+    }
+    ge-0/0/7 {
+        gigether-options {
+            802.3ad ae1;
+        }
+    }
+    ge-0/0/10 {
+        unit 0 {
+            family ethernet-switching {
+                interface-mode access;
+                vlan {
+                    members VNI_10;
+                }
+            }
+        }
+    }
+    ge-0/0/14 {
+        gigether-options {
+            802.3ad ae10;
+        }
+    }
+    ae0 {
+        aggregated-ether-options {
+            minimum-links 1;
+            lacp {
+                active;
+            }
+        }
+        unit 0 {
+            family inet {
+                address 10.0.0.1/30;
+            }
+        }
+    }
+    ae1 {
+        aggregated-ether-options {
+            minimum-links 1;
+            lacp {
+                active;
+            }
+        }
+        unit 0 {
+            family inet {
+                address 10.0.0.5/30;
+            }
+        }
+    }
+    ae10 {
+        flexible-vlan-tagging;
+        encapsulation flexible-ethernet-services;
+        esi {
+            00:00:00:00:00:01:00:00:00:01;
+            all-active;
+        }
+        aggregated-ether-options {
+            minimum-links 1;
+            lacp {
+                active;
+                periodic fast;
+                system-id 00:01:00:00:00:01;
+            }
+        }
+        unit 0 {
+            family ethernet-switching {
+                interface-mode trunk;
+                vlan {
+                    members 200;
+                }
+            }
+        }
+    }
+    irb {
+        unit 10 {
+            virtual-gateway-accept-data;
+            family inet {
+                address 192.168.10.251/24 {
+                    virtual-gateway-address 192.168.10.254;
+                }
+            }
+            virtual-gateway-v4-mac 00:00:5e:00:00:01;
+        }
+        unit 20 {
+            virtual-gateway-accept-data;
+            family inet {
+                address 192.168.20.251/24 {
+                    virtual-gateway-address 192.168.20.254;
+                }
+            }
+            virtual-gateway-v4-mac 00:00:5e:00:00:02;
+        }
+        unit 200 {
+            virtual-gateway-accept-data;
+            family inet {
+                address 192.168.200.251/24 {
+                    virtual-gateway-address 192.168.200.254;
+                }
+            }
+            virtual-gateway-v4-mac 00:00:5e:00:00:21;
+        }
+        unit 201 {
+            virtual-gateway-accept-data;
+            family inet {
+                address 192.168.201.251/24 {
+                    virtual-gateway-address 192.168.201.254;
+                }
+            }
+            virtual-gateway-v4-mac 00:00:5e:00:00:22;
+        }
+    }
+    lo0 {
+        unit 0 {
+            family inet {
+                address 172.16.0.1/32;
+            }
+        }
+    }
+    vme {
+        protect: unit 0 {
+            family inet {
+                address 192.168.252.134/24;
+            }
+        }
+    }
+}
+forwarding-options {
+    evpn-vxlan {
+        shared-tunnels;
+    }
+}
+policy-options {
+    prefix-list lo0-export {
+        172.16.0.1/32;
+        172.16.1.1/32;
+        172.16.1.2/32;
+    }
+    policy-statement load-balancing {
+        then {
+            load-balance per-packet;
+        }
+    }
+    policy-statement loopback-export {
+        term 1 {
+            from {
+                prefix-list lo0-export;
+            }
+            then accept;
+        }
+        term 2 {
+            then reject;
+        }
+    }
+}
+routing-instances {
+    IRB-VRF-1 {
+        instance-type vrf;
+        interface irb.10;
+        interface irb.20;
+        route-distinguisher 172.16.0.1:12;
+        vrf-target target:65400:1200;
+    }
+    IRB-VRF-2 {
+        instance-type vrf;
+        interface irb.200;
+        interface irb.201;
+        route-distinguisher 172.16.0.1:22;
+        vrf-target target:65400:2200;
+    }
+    MAC-VRF-1 {
+        instance-type mac-vrf;
+        protocols {
+            evpn {
+                encapsulation vxlan;
+                default-gateway no-gateway-community;
+                extended-vni-list all;
+            }
+        }
+        vtep-source-interface lo0.0;
+        forwarding-options {
+            evpn-vxlan {
+                shared-tunnels;
+            }
+        }
+        service-type vlan-aware;
+        interface ge-0/0/10.0;
+        route-distinguisher 172.16.0.1:11;
+        vrf-target target:65400:1100;
+        vlans {
+            VNI_10 {
+                vlan-id 10;
+                l3-interface irb.10;
+                vxlan {
+                    vni 10;
+                }
+            }
+            VNI_20 {
+                vlan-id 20;
+                l3-interface irb.20;
+                vxlan {
+                    vni 20;
+                }
+            }
+        }
+    }
+    MAC-VRF-2 {
+        instance-type mac-vrf;
+        protocols {
+            evpn {
+                encapsulation vxlan;
+                default-gateway no-gateway-community;
+                extended-vni-list all;
+            }
+        }
+        vtep-source-interface lo0.0;
+        forwarding-options {
+            evpn-vxlan {
+                shared-tunnels;
+            }
+        }
+        service-type vlan-aware;
+        interface ae10.0;
+        route-distinguisher 172.16.0.1:21;
+        vrf-target target:65400:2100;
+        vlans {
+            VNI_200 {
+                vlan-id 200;
+                l3-interface irb.200;
+                vxlan {
+                    vni 200;
+                }
+            }
+            VNI_201 {
+                vlan-id 201;
+                l3-interface irb.201;
+                vxlan {
+                    vni 201;
+                }
+            }
+        }
+    }
+    protect: mgmt_junos {
+        routing-options {
+            static {
+                route 0.0.0.0/0 next-hop 192.168.252.1;
+            }
+        }
+        description "Management routing instance";
+    }
+}
+routing-options {
+    router-id 172.16.0.1;
+    autonomous-system 65400;
+    forwarding-table {
+        export load-balancing;
+        ecmp-fast-reroute;
+    }
+}
+protocols {
+    bgp {
+        group BGP_underlay {
+            type external;
+            family inet {
+                unicast;
+            }
+            export loopback-export;
+            local-as 65403;
+            multipath {
+                multiple-as;
+            }
+            neighbor 10.0.0.2 {
+                peer-as 65401;
+            }
+            neighbor 10.0.0.6 {
+                peer-as 65402;
+            }
+        }
+        group BGP_overlay {
+            type internal;
+            local-address 172.16.0.1;
+            family evpn {
+                signaling;
+            }
+            bfd-liveness-detection {
+                minimum-interval 350;
+                multiplier 3;
+                session-mode automatic;
+            }
+            neighbor 172.16.1.1;
+            neighbor 172.16.1.2;
+        }
+    }
+    lldp {
+        interface all;
+    }
+}
+
